@@ -1,0 +1,85 @@
+name:                world-of
+version:             0.1.0.0
+github:              "soverysour/world-of"
+license:             BSD3
+author:              "soverysour"
+maintainer:          "sebi.f@tuta.io"
+copyright:           "BSD3"
+
+extra-source-files:
+- README.md
+
+synopsis:            Some game
+category:            game
+
+description:         Please see the README on GitHub at <https://github.com/soverysour/world-of#readme>
+
+ghc-options:
+  - -Weverything
+  - -Werror
+  - -Wno-safe
+  - -Wno-unsafe
+  - -Wno-missing-import-lists
+  - -Wno-missed-specialisations
+  - -Wno-all-missed-specialisations
+  - -Wno-missing-local-signatures
+  - -Wno-monomorphism-restriction
+
+default-extensions:
+  - EmptyCase
+  - FlexibleContexts
+  - FlexibleInstances
+  - InstanceSigs
+  - MultiParamTypeClasses
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - StandaloneDeriving
+  - OverloadedStrings
+  - NoImplicitPrelude
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeOperators
+  - MultiWayIf
+  - NamedFieldPuns
+  - TupleSections
+  - DisambiguateRecordFields
+  - RecordWildCards
+
+dependencies:
+- base >= 4.7 && < 5
+- classy-prelude
+- text
+- random
+- vector
+- containers
+- pretty-simple
+
+library:
+  source-dirs: src
+
+executables:
+  world-of-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - world-of
+
+tests:
+  world-of-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - world-of
