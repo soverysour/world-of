@@ -58,6 +58,7 @@ dependencies:
 - vector
 - containers
 - pretty-simple
+- transformers
 
 library:
   source-dirs: src

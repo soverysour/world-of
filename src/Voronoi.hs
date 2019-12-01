@@ -1,12 +1,14 @@
 module Voronoi
   ( Voronoi(..)
   , mkVoronoiIO
+  , mkVoronoi
   ) where
 
 import           ClassyPrelude
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Set           as Set
-import qualified Data.Vector        as V
+import           Control.Monad.Trans.State.Lazy
+import qualified Data.List.NonEmpty             as NE
+import qualified Data.Set                       as Set
+import qualified Data.Vector                    as V
 import           System.Random
 
 import           Orphanage
@@ -19,12 +21,31 @@ data Voronoi a =
     }
   deriving (Eq, Show)
 
--- TODO: Split mkVoronoiIO into two, one using IO, one using a random number generator.
+mkVoronoiIO :: (Enum a, Bounded a) => DimX -> DimY -> Count -> IO (Voronoi a)
+mkVoronoiIO dimx dimy count = do
+  let voronoiStateT = mkVoronoi' dimx dimy count
+  stdGen <- getStdGen
+  let (voronoi, g) = runState voronoiStateT stdGen
+  setStdGen g
+  return voronoi
+
+mkVoronoi ::
+     (Enum a, Bounded a)
+  => DimX
+  -> DimY
+  -> Count
+  -> StdGen
+  -> (Voronoi a, StdGen)
+mkVoronoi dimx dimy count gen =
+  let voronoiStateT = mkVoronoi' dimx dimy count
+   in runState voronoiStateT gen
+
 -- | Generates a voronoi diagram by randomly and safely generating enum values.
 -- | The bounds are 0 indexed and therefore the upper bounds are exclusive.
-mkVoronoiIO :: (Enum a, Bounded a) => DimX -> DimY -> Count -> IO (Voronoi a)
-mkVoronoiIO dimx dimy randomPoints = do
-  centers <- take (fromIntegral randomPoints) . randoms <$> getStdGen
+mkVoronoi' ::
+     (Enum a, Bounded a) => DimX -> DimY -> Count -> State StdGen (Voronoi a)
+mkVoronoi' dimx dimy randomPoints = do
+  centers <- take (fromIntegral randomPoints) <$> getRandomInf
   (_, positionedCenters) <- foldM (combineF dimx dimy) (Set.empty, []) centers
   let positionedCenters' =
         case positionedCenters of
@@ -52,19 +73,33 @@ combineF ::
   -> DimY
   -> (Set Point, [LabeledPoint])
   -> Label
-  -> IO (Set Point, [LabeledPoint])
+  -> State StdGen (Set Point, [LabeledPoint])
 combineF dimx dimy (set, acc) label = do
   point' <- getFreePoint dimx dimy set
   let set' = point' `Set.insert` set
   return (set', (point', label) : acc)
 
-getFreePoint :: DimX -> DimY -> Set Point -> IO Point
+getFreePoint :: DimX -> DimY -> Set Point -> State StdGen Point
 getFreePoint dimx dimy set = do
-  (x, y) <- randomIO
+  (x, y) <- getRandom
   let point' = (x `mod` dimx, y `mod` dimy)
   if point' `Set.member` set
     then getFreePoint dimx dimy set
     else return point'
+
+-- | Get a random number. Update the state.
+getRandom :: (Monad m, Random a) => StateT StdGen m a
+getRandom = do
+  (a, g) <- random <$> get
+  put g
+  return a
+
+-- | Get an infinite list of random numbers. Split the generator before, update accordingly.
+getRandomInf :: (Monad m, Random a) => StateT StdGen m [a]
+getRandomInf = do
+  (g1, g2) <- split <$> get
+  put g2
+  return $ randoms g1
 
 type Count = Word
 
