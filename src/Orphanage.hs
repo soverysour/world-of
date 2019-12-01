@@ -9,6 +9,7 @@ import           ClassyPrelude
 import           System.Random
 
 -- | Safe conversion from a Word to a bounded enum type. Wraps around its max bound.
+-- | Takes into account negative lower bound.
 toWrappedEnum ::
      forall a. (Enum a, Bounded a)
   => Word
@@ -16,8 +17,10 @@ toWrappedEnum ::
 toWrappedEnum w = toEnum $ fromIntegral v
   where
     maxB = maxBound :: a
-    boundMaxB = 1 + fromIntegral (fromEnum maxB)
-    v = w `mod` boundMaxB
+    minB = minBound :: a
+    boundMinB = fromIntegral $ fromEnum minB
+    boundMaxB = 1 + fromIntegral (fromEnum maxB) + boundMinB
+    v = (w `mod` boundMaxB) - boundMinB
 
 -- | Random instance for tuple2.
 instance (Random a, Random b) => Random (a, b) where
