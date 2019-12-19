@@ -1,3 +1,6 @@
 .stack-work/
 world-of.cabal
 *~
+world-of.iml
+.idea/
+out/
