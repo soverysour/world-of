@@ -3,15 +3,20 @@ module Types.Common
   , Dim
   , DimX
   , DimY
-  , Label
-  , Pos
+  , Position
   , Point
   , PointWithInfo
-  , LabeledPoint
+  , Time
+  , Key
+  , Keyed
+  , TimeWindow
+  , WithRand
+  , WithRandT
   , Level(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
+import           System.Random.SplitMix
 
 type Count = Word
 
@@ -21,15 +26,23 @@ type DimX = Dim
 
 type DimY = Dim
 
-type Label = Word
+type Position = Word
 
-type Pos = Word
-
-type Point = (Pos, Pos)
+type Point = (Position, Position)
 
 type PointWithInfo a = (Point, a)
 
-type LabeledPoint = PointWithInfo Label
+type Time = Integer
+
+type TimeWindow = Word
+
+type Key = Integer
+
+type Keyed = State Key
+
+type WithRandT = StateT SMGen
+
+type WithRand = State SMGen
 
 data Level
   = None

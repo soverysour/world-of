@@ -1,10 +1,11 @@
-module Types.World.Desert
+module Types.World.Area.Desert
   ( Desert(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
 
 import           Types.Common
+import qualified Types.World as W
 
 data Desert =
   Desert
@@ -13,3 +14,7 @@ data Desert =
     , turbulence       :: Level
     }
   deriving (Eq, Show)
+
+instance W.AreaClass Desert where
+  zoneOf _ = W.Desert
+  x `interpreting` _ = pure ([], W.WorldArea x)

@@ -1,8 +1,8 @@
-module Types.World.Water
+module Types.World.Area.Water
   ( Water(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
 
 import           Types.Common
 import qualified Types.World as W
@@ -18,4 +18,4 @@ data Water =
 
 instance W.AreaClass Water where
   zoneOf _ = W.Water
-  x `interpreting` _ = ([], W.WorldArea x)
+  x `interpreting` _ = pure ([], W.WorldArea x)

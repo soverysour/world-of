@@ -1,10 +1,11 @@
-module Types.World.Swamp
+module Types.World.Area.Swamp
   ( Swamp(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
 
 import           Types.Common
+import qualified Types.World as W
 
 data Swamp =
   Swamp
@@ -13,3 +14,7 @@ data Swamp =
     , forestation      :: Level
     }
   deriving (Eq, Show)
+
+instance W.AreaClass Swamp where
+  zoneOf _ = W.Swamp
+  x `interpreting` _ = pure ([], W.WorldArea x)

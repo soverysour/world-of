@@ -49,16 +49,19 @@ default-extensions:
   - TupleSections
   - DisambiguateRecordFields
   - RecordWildCards
+  - DuplicateRecordFields
 
 dependencies:
 - base >= 4.7 && < 5
-- classy-prelude
+- protolude
 - text
 - random
+- splitmix
+- lens
 - matrix
 - containers
 - pretty-simple
-- transformers
+- sorted-list
 
 library:
   source-dirs: src

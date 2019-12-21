@@ -1,10 +1,11 @@
-module Types.World.Tundra
+module Types.World.Area.Tundra
   ( Tundra(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
 
 import           Types.Common
+import qualified Types.World as W
 
 data Tundra =
   Tundra
@@ -14,3 +15,7 @@ data Tundra =
     , grassiness       :: Level
     }
   deriving (Eq, Show)
+
+instance W.AreaClass Tundra where
+  zoneOf _ = W.Tundra
+  x `interpreting` _ = pure ([], W.WorldArea x)

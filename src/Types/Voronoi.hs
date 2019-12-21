@@ -2,7 +2,7 @@ module Types.Voronoi
   ( Voronoi(..)
   ) where
 
-import           ClassyPrelude
+import           Protolude
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Matrix        as M
 
