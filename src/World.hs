@@ -1,7 +1,8 @@
+{-# LANGUAGE TupleSections #-}
+
 module World
   ( createWorld
   , tickWorld
-  , WorldConfig(..)
   , TimeWindow
   ) where
 
@@ -15,39 +16,47 @@ import           Types.Common
 import           Types.Voronoi
 import           Types.World
 import           Types.World.Actor.UselessConsumer
-import           World.Config
 
-createWorld :: WorldConfig -> IO World
-createWorld (WorldConfig sizeX sizeY zones _) = do
-  roughMap <- mkVoronoiIO sizeX sizeY zones
-  mapAreas <- traverse mkMapAreaIO $ cells roughMap
-  return $ World sizeX sizeY mapAreas [Indexed mkUselessConsumer (3, 3) 1] mempty
+createWorld :: Dim -> Dim -> Dim -> WithRandT Keyed World
+createWorld sizeX sizeY zones = do
+  roughMap <- mkVoronoi sizeX sizeY zones
+  mapAreas <- traverse mkMapArea $ cells roughMap
+  key <- nextSeq
+  return $ World sizeX sizeY mapAreas [Indexed mkUselessConsumer (3, 3) key] mempty
 
-tickWorld :: Time -> TimeWindow -> World -> WithRandT Keyed World
-tickWorld time timeWindow world =
-  let interval = [time + 1 .. time + fromIntegral timeWindow]
-   in foldM interpretRec world interval
+tickWorld :: TimeWindow -> (Time, World) -> WithRandT Keyed (Time, World)
+tickWorld timeWindow (time, world) =
+  let finalTime = time + fromIntegral timeWindow
+      interval = [time + 1 .. finalTime]
+   in (finalTime, ) <$> foldM interpretRec world interval
 
 interpretRec :: World -> Time -> WithRandT Keyed World
 interpretRec initial time = exhaust afterPulse
   where
-    afterPulse = interpret (Left Pulse) (const True, const . const True) time initial
+    afterPulse = interpret (False, Left Pulse) (const True, const . const True) time initial
     exhaust world = do
       world' <- world
       case SL.uncons $ events world' of
         Nothing -> return world'
-        Just (Timed (Indexed event location key) time', tl) ->
+        Just ((fromArea, Timed (Indexed event location key) time'), tl) ->
           if time' > time
             then return world'
             else exhaust $
-                 interpret (Right event) ((== location), \p k -> p == location && k /= key) time (world' {events = tl})
+                 interpret
+                   (fromArea, Right event)
+                   ((== location), \p k -> p == location && k /= key)
+                   time
+                   (world' {events = tl})
 
-interpret :: Pulser -> (AreaLocalizer, ActorLocalizer) -> Time -> World -> WithRandT Keyed World
-interpret e (areaf, actorf) time (World x y areas actors events) = do
+interpret :: MaybeFromArea Pulser -> (AreaLocalizer, ActorLocalizer) -> Time -> World -> WithRandT Keyed World
+interpret (fromArea, e) (areaf, actorf) time (World x y areas actors events) = do
   (pulseActorEvents, pulsedActors) <- pulseActorsWith e actorf actors
-  (pulseAreaEvents, pulsedMap) <- pulseAreasWith e areaf areas
-  let allEvents = pulseActorEvents <> pulseAreaEvents
-      timedEvents = fmap (\event -> Timed event (fromIntegral (timeEvent $ unElement event) + time)) allEvents
+  (pulseAreaEvents, pulsedMap) <-
+    if fromArea
+      then pure ([], areas)
+      else pulseAreasWith e areaf areas
+  let allEvents = ((False, ) <$> pulseActorEvents) <> ((True, ) <$> pulseAreaEvents)
+      timedEvents = fmap (\event -> Timed event (fromIntegral (timeEvent $ unElement event) + time)) <$> allEvents
   return $ World x y pulsedMap pulsedActors (SL.toSortedList timedEvents <> events)
 
 pulseActorsWith ::

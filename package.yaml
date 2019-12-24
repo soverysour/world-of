@@ -62,6 +62,9 @@ dependencies:
 - containers
 - pretty-simple
 - sorted-list
+- pipes
+- pipes-concurrency
+- websockets
 
 library:
   source-dirs: src

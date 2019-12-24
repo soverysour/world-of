@@ -10,6 +10,7 @@ module Types.World
   , ActorClass(..)
   , Pulse(..)
   , Pulser
+  , MaybeFromArea
   , timeEvent
   , Indexed(..)
   , Timed(..)
@@ -34,11 +35,11 @@ data WorldZone
 
 data World =
   World
-    { sizeX       :: Word
-    , sizeY       :: Word
+    { sizeX       :: Dim
+    , sizeY       :: Dim
     , worldAreas  :: M.Matrix WorldArea
     , worldActors :: [Indexed WorldActor]
-    , events      :: SL.SortedList (Timed (Indexed WorldEvent))
+    , events      :: SL.SortedList (MaybeFromArea (Timed (Indexed WorldEvent)))
     }
   deriving (Show)
 
@@ -87,6 +88,8 @@ data Pulse =
   deriving (Eq, Show, Enum, Bounded)
 
 type Pulser = Either Pulse WorldEvent
+
+type MaybeFromArea a = (Bool, a)
 
 -- Specific type of element - enriched with time, location target, and generator id.
 -- Eq and Ord just by time.

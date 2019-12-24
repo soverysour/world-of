@@ -8,8 +8,12 @@ module Intro
   , getRandomRange
   , toWrappedEnum
   , compareWith
+  , foreachM
+  , runEffect'
+  , chanToPipe
   ) where
 
+import           Pipes
 import           Protolude
 import           System.Random
 import           System.Random.SplitMix
@@ -34,6 +38,12 @@ getRandomInf = do
   put g2
   return $ randoms g1
 
+getRandomRange :: (Monad m, Random a) => (a, a) -> StateT SMGen m a
+getRandomRange bounds = do
+  (a, g) <- randomR bounds <$> get
+  put g
+  return a
+
 -- | Safe conversion from a Word to a bounded enum type. Wraps around its max bound.
 -- | Takes into account negative lower bound.
 toWrappedEnum ::
@@ -51,8 +61,14 @@ toWrappedEnum w = toEnum $ fromIntegral v
 compareWith :: (Ord b) => (a -> b) -> a -> a -> Ordering
 compareWith f a b = compare (f a) (f b)
 
-getRandomRange :: (Monad m, Random a) => (a, a) -> StateT SMGen m a
-getRandomRange bounds = do
-  (a, g) <- randomR bounds <$> get
-  put g
-  return a
+foreachM :: (Num n, Enum n, Monad m) => (b -> m b) -> b -> n -> m b
+foreachM f init count = foldM (\b _ -> f b) init [1 .. count]
+
+runEffect' :: Effect IO r -> IO ()
+runEffect' = void . forkIO . void . runEffect
+
+chanToPipe :: Chan a -> Producer a IO ()
+chanToPipe chan = do
+  element <- lift $ readChan chan
+  yield element
+  chanToPipe chan

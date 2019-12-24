@@ -17,18 +17,13 @@ import           Types.Voronoi
 mkVoronoiIO :: (Enum a, Bounded a) => DimX -> DimY -> Count -> IO (Voronoi a)
 mkVoronoiIO dimx dimy count = do
   stdGen <- newSMGen
-  let (voronoi, _) = mkVoronoi dimx dimy count stdGen
+  let (voronoi, _) = runState (mkVoronoi dimx dimy count) stdGen
   return voronoi
-
-mkVoronoi :: (Enum a, Bounded a) => DimX -> DimY -> Count -> SMGen -> (Voronoi a, SMGen)
-mkVoronoi dimx dimy count gen =
-  let voronoiStateT = mkVoronoi' dimx dimy count
-   in runState voronoiStateT gen
 
 -- | Generates a voronoi diagram by randomly and safely generating enum values.
 -- | The bounds are 1 indexed and therefore the upper bounds are inclusive.
-mkVoronoi' :: (Enum a, Bounded a) => DimX -> DimY -> Count -> WithRand (Voronoi a)
-mkVoronoi' dimx dimy randomPoints = do
+mkVoronoi :: Monad m => (Enum a, Bounded a) => DimX -> DimY -> Count -> WithRandT m (Voronoi a)
+mkVoronoi dimx dimy randomPoints = do
   centers <- take (fromIntegral randomPoints) <$> getRandomBoundedInf
   (_, positionedCenters) <- foldM (combineF dimx dimy) (Set.empty, []) centers
   let positionedCenters' =
@@ -45,13 +40,13 @@ findNearest x y points =
         (\((x', y'), l) -> (abs (x - fromIntegral x') + abs (y - fromIntegral y'), l)) <$> points
    in snd $ NE.head points'
 
-combineF :: DimX -> DimY -> (Set Point, [PointWithInfo a]) -> a -> WithRand (Set Point, [PointWithInfo a])
+combineF :: Monad m => DimX -> DimY -> (Set Point, [PointWithInfo a]) -> a -> WithRandT m (Set Point, [PointWithInfo a])
 combineF dimx dimy (set, acc) label = do
   point' <- getFreePoint dimx dimy set
   let set' = point' `Set.insert` set
   return (set', (point', label) : acc)
 
-getFreePoint :: DimX -> DimY -> Set Point -> WithRand Point
+getFreePoint :: Monad m => DimX -> DimY -> Set Point -> WithRandT m Point
 getFreePoint dimx dimy set = do
   point' <- getRandomRange ((1, 1), (dimx, dimy))
   if point' `Set.member` set

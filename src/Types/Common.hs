@@ -10,7 +10,6 @@ module Types.Common
   , Key
   , Keyed
   , TimeWindow
-  , WithRand
   , WithRandT
   , Level(..)
   ) where
@@ -41,8 +40,6 @@ type Key = Integer
 type Keyed = State Key
 
 type WithRandT = StateT SMGen
-
-type WithRand = State SMGen
 
 data Level
   = None
