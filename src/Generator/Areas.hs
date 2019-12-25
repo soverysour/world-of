@@ -21,7 +21,7 @@ mkMapAreaIO :: WorldZone -> IO WorldArea
 mkMapAreaIO zone = do
   stdGen <- newSMGen
   let (area, _) = runState (mkMapArea zone) stdGen
-  return area
+  pure area
 
 mkMapArea :: Monad m => WorldZone -> WithRandT m WorldArea
 mkMapArea Water    = WorldArea <$> randomWater

@@ -4,8 +4,11 @@ module Message
   , TickerMsg(..)
   , SimulationRequest(..)
   , SimulationResult(..)
+  , WebSocketMessageIn(..)
+  , WebSocketMessageOut(..)
   ) where
 
+import           Data.Aeson
 import           Protolude
 
 data OutToInEvent
@@ -19,14 +22,27 @@ data InToOutEvent
   deriving (Eq, Show, Enum, Bounded)
 
 data TickerMsg
-  = StartTick
-  | EndTick
+  = Tick
   deriving (Eq, Show, Enum, Bounded)
 
-data SimulationRequest
-  = Whatever2
+data SimulationRequest =
+  Whatever2
   deriving (Eq, Show, Enum, Bounded)
 
 data SimulationResult =
   Whatever
   deriving (Eq, Show, Enum, Bounded)
+
+data WebSocketMessageIn
+  = Register Text
+  | Get
+  deriving (Eq, Show, Generic)
+
+data WebSocketMessageOut
+  = NameAlreadyExists
+  | BadMessage
+  deriving (Eq, Show, Generic)
+
+instance FromJSON WebSocketMessageIn
+
+instance ToJSON WebSocketMessageOut

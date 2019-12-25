@@ -54,13 +54,12 @@ default-extensions:
 dependencies:
 - base >= 4.7 && < 5
 - protolude
-- text
+- aeson
 - random
 - splitmix
 - lens
 - matrix
 - containers
-- pretty-simple
 - sorted-list
 - pipes
 - pipes-concurrency

@@ -18,7 +18,7 @@ mkVoronoiIO :: (Enum a, Bounded a) => DimX -> DimY -> Count -> IO (Voronoi a)
 mkVoronoiIO dimx dimy count = do
   stdGen <- newSMGen
   let (voronoi, _) = runState (mkVoronoi dimx dimy count) stdGen
-  return voronoi
+  pure voronoi
 
 -- | Generates a voronoi diagram by randomly and safely generating enum values.
 -- | The bounds are 1 indexed and therefore the upper bounds are inclusive.
@@ -31,7 +31,7 @@ mkVoronoi dimx dimy randomPoints = do
           []     -> ((0, 0), minBound) NE.:| []
           (x:xs) -> x NE.:| xs
   let cells = M.matrix (fromIntegral dimy) (fromIntegral dimx) (\(y, x) -> findNearest x y positionedCenters')
-  return $ Voronoi cells dimx dimy positionedCenters'
+  pure $ Voronoi cells dimx dimy positionedCenters'
 
 findNearest :: Int -> Int -> NE.NonEmpty (PointWithInfo a) -> a
 findNearest x y points =
@@ -44,11 +44,11 @@ combineF :: Monad m => DimX -> DimY -> (Set Point, [PointWithInfo a]) -> a -> Wi
 combineF dimx dimy (set, acc) label = do
   point' <- getFreePoint dimx dimy set
   let set' = point' `Set.insert` set
-  return (set', (point', label) : acc)
+  pure (set', (point', label) : acc)
 
 getFreePoint :: Monad m => DimX -> DimY -> Set Point -> WithRandT m Point
 getFreePoint dimx dimy set = do
   point' <- getRandomRange ((1, 1), (dimx, dimy))
   if point' `Set.member` set
     then getFreePoint dimx dimy set
-    else return point'
+    else pure point'

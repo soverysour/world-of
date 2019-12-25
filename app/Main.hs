@@ -23,7 +23,6 @@ runGame :: ServerConfig -> WorldConfig -> IO ()
 runGame serverConfig worldConfig = do
   generator <- newSMGen
   chanFromServer <- newChan
-  chanToServer <- newChan
   --
   -- Setup the initial simulation configuration.
   --
@@ -41,8 +40,8 @@ runGame serverConfig worldConfig = do
       sinkGameAndTick = toOutput putGameAndTick
       sourceGameAndTick = fromInput takeGameAndTick
       -- And the handlers.
-      serverProducer = chanToPipe chanFromServer
-      gameHandler' = gameHandler chanToServer
+      serverProducer = chanToPipeProd chanFromServer
+      gameHandler' = gameHandler
       ticker' = tickerHandler (tickPeriod worldConfig)
       simulationRunner' = simulationHandler (windowSize worldConfig) result generator' nextKey
   --
@@ -51,15 +50,20 @@ runGame serverConfig worldConfig = do
   let ticker = ticker' >-> map Left >-> sinkGameAndTick
       serverWs = serverProducer >-> map Right >-> sinkServerAndSim
       simulationRunner = sourceGameAndTick >-> simulationRunner' >-> map Left >-> sinkServerAndSim
-      serverEngine = sourceServerAndSim >-> gameHandler' >-> map Right >-> sinkGameAndTick
+      gameHandlerOutput = sourceServerAndSim >-> gameHandler'
+      gameHandlerReenter = gameHandlerOutput >-> collectRight >-> map Right >-> sinkGameAndTick
+  --
+  -- Create a channel for game output to the server
+  --
+  chanToServer <- pipeProdToChan $ gameHandlerOutput >-> collectLeft
   --
   -- Run the effects (forked to other threads) and start the WS server.
   --
   runEffect' ticker
   runEffect' simulationRunner
-  runEffect' serverEngine
+  runEffect' gameHandlerReenter
   runEffect' serverWs
-  webSocketServer chanFromServer serverConfig
+  webSocketServer chanFromServer chanToServer serverConfig
 
 initWorld :: WorldConfig -> WithRandT Keyed (Time, World)
 initWorld (WorldConfig dimx dimy zoneCount timeWindow initialTime _ startSteps _) = do

@@ -10,7 +10,10 @@ module Intro
   , compareWith
   , foreachM
   , runEffect'
-  , chanToPipe
+  , chanToPipeProd
+  , pipeProdToChan
+  , collectLeft
+  , collectRight
   ) where
 
 import           Pipes
@@ -29,20 +32,20 @@ getRandom :: (Monad m, Random a) => StateT SMGen m a
 getRandom = do
   (a, g) <- random <$> get
   put g
-  return a
+  pure a
 
 -- | Get an infinite list of random things. Split the generator before, update accordingly.
 getRandomInf :: (Monad m, Random a) => StateT SMGen m [a]
 getRandomInf = do
   (g1, g2) <- split <$> get
   put g2
-  return $ randoms g1
+  pure $ randoms g1
 
 getRandomRange :: (Monad m, Random a) => (a, a) -> StateT SMGen m a
 getRandomRange bounds = do
   (a, g) <- randomR bounds <$> get
   put g
-  return a
+  pure a
 
 -- | Safe conversion from a Word to a bounded enum type. Wraps around its max bound.
 -- | Takes into account negative lower bound.
@@ -67,8 +70,36 @@ foreachM f init count = foldM (\b _ -> f b) init [1 .. count]
 runEffect' :: Effect IO r -> IO ()
 runEffect' = void . forkIO . void . runEffect
 
-chanToPipe :: Chan a -> Producer a IO ()
-chanToPipe chan = do
+chanToPipeProd :: Chan a -> Producer a IO ()
+chanToPipeProd chan = do
   element <- lift $ readChan chan
   yield element
-  chanToPipe chan
+  chanToPipeProd chan
+
+pipeProdToChan :: Producer a IO () -> IO (Chan a)
+pipeProdToChan prod = do
+  chan <- newChan
+  let consumer = do
+        element <- await
+        lift $ writeChan chan element
+        consumer
+  runEffect' $ prod >-> consumer
+  pure chan
+
+collectLeft :: Monad m => Pipe (Either a b) a m r
+collectLeft = do
+  element <- await
+  case element of
+    Left e -> do
+      yield e
+      collectLeft
+    Right _ -> collectLeft
+
+collectRight :: Monad m => Pipe (Either a b) b m r
+collectRight = do
+  element <- await
+  case element of
+    Right e -> do
+      yield e
+      collectRight
+    Left _ -> collectRight
